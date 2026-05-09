@@ -1,0 +1,33 @@
+{
+  "name": "pi-claude-code-cli",
+  "version": "0.0.0",
+  "description": "Pi provider package for routing Claude Code CLI subscription-backed model calls through Pi-native tools.",
+  "main": "src/index.ts",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "claude-code",
+    "pi-provider"
+  ],
+  "pi": {
+    "extensions": [
+      "src/index.ts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/janhoon/pi-claude-code-cli.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
