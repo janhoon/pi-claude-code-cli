@@ -20,7 +20,8 @@
   },
   "license": "MIT",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/session-policy.test.mjs"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

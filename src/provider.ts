@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 import {
   createAssistantMessageEventStream,
@@ -19,6 +20,7 @@ import { createEventBridge } from "./event-bridge.js";
 import { generateMcpConfigForPiTools, type ToolExposureOptions } from "./mcp-config.js";
 import { buildClaudeInput } from "./prompt.js";
 import { ClaudeSessionMap, SESSION_MAP_ENTRY_TYPE, splitResumeBase } from "./session-map.js";
+import { shouldRecordClaudeSessionMapping, shouldResumeClaudeSession } from "./session-policy.js";
 import { isControlRequest, isResultMessage, isStreamEvent, parseClaudeLine } from "./stream-parser.js";
 import { mapThinkingEffort } from "./thinking-config.js";
 import type { PiMessage } from "./types.js";
@@ -48,7 +50,9 @@ export function streamViaClaudeCli(
     const messages = context.messages as PiMessage[];
     const split = splitResumeBase(messages);
     const decision = deps.sessionMap.decide(split.baseMessages);
-    const prompt = buildClaudeInput(messages, decision.resume).input;
+    const resume = shouldResumeClaudeSession(decision.resume, split.trailingToolResults.length, split.baseMessages);
+    const claudeSessionId = resume ? decision.claudeSessionId : randomUUID();
+    const prompt = buildClaudeInput(messages, resume).input;
     const bridge = createEventBridge(stream, model, mcp.activeToolNames);
     const effort = mapThinkingEffort(options.reasoning, model.id, options.thinkingBudgets);
 
@@ -88,8 +92,8 @@ export function streamViaClaudeCli(
         systemPrompt: context.systemPrompt ?? "",
         mcpConfigPath: mcp.configPath,
         signal: options.signal,
-        resumeSessionId: decision.resume ? decision.claudeSessionId : undefined,
-        newSessionId: decision.resume ? undefined : decision.claudeSessionId,
+        resumeSessionId: resume ? claudeSessionId : undefined,
+        newSessionId: resume ? undefined : claudeSessionId,
         effort,
       });
       const getStderr = captureStderr(proc);
@@ -174,8 +178,10 @@ export function streamViaClaudeCli(
         stream.push({ type: "done", reason: stopReason, message: finalMessage });
         stream.end(finalMessage);
 
-        const mapping = deps.sessionMap.record(messages, finalMessage, decision.claudeSessionId);
-        deps.pi.appendEntry(SESSION_MAP_ENTRY_TYPE, mapping);
+        if (shouldRecordClaudeSessionMapping(finalMessage)) {
+          const mapping = deps.sessionMap.record(messages, finalMessage, claudeSessionId);
+          deps.pi.appendEntry(SESSION_MAP_ENTRY_TYPE, mapping);
+        }
       }
     } catch (error) {
       endWithError(error instanceof Error ? error.message : String(error));
