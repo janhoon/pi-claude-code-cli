@@ -11,12 +11,16 @@ export function buildClaudeInput(messages: PiMessage[], useResume: boolean): Pro
   const split = splitResumeBase(messages);
 
   if (useResume && split.trailingToolResults.length > 0) {
+    const toolResults = split.trailingToolResults as ToolResultMessage[];
+    const structuredToolResults = process.env.PI_CLAUDE_CODE_STRUCTURED_TOOL_RESULTS === "1";
     return {
       baseMessages: split.baseMessages,
       input: {
         kind: "tool_results",
         resumeBaseHash: undefined,
-        content: toolResultsToClaudeBlocks(split.trailingToolResults as ToolResultMessage[]),
+        content: structuredToolResults
+          ? toolResultsToClaudeBlocks(toolResults)
+          : toolResultsToTextFallback(toolResults),
       },
     };
   }
@@ -146,7 +150,8 @@ function findFinalUserIndex(messages: PiMessage[]): number {
 }
 
 export function toolResultsToTextFallback(results: ToolResultMessage[]): string {
-  return results
+  const body = results
     .map((result) => `TOOL RESULT (${result.toolName}, id=${result.toolCallId}):\n${contentToText(result.content)}${result.isError ? "\n[tool result marked as error]" : ""}`)
     .join("\n\n");
+  return `${body}\n\nUse the tool result(s) above to answer the user's original request. Do not repeat tool calls that already have results unless more information is required.`;
 }
