@@ -22,6 +22,16 @@ Early implementation. The package registers a `claude-code-cli` provider and rou
 - Existing Claude Code login (`claude auth login`).
 - Pi with extension package support.
 
+## Installation
+
+Install directly from GitHub with Pi:
+
+```bash
+pi install git:github.com/janhoon/pi-claude-code-cli
+```
+
+Then restart Pi or run `/reload` in an existing Pi session.
+
 ## Development
 
 ```bash
